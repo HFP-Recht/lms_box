@@ -1,4 +1,4 @@
-import { SCRIPT_URL } from './config.js';
+import { SCRIPT_URL, ORG_PREFIX } from './config.js'; // Import ORG_PREFIX
 
 const ANSWER_PREFIX = 'modular-answer_';
 const QUESTIONS_PREFIX = 'modular-questions_';
@@ -224,8 +224,15 @@ export function renderSubAssignment(assignmentData, assignmentId, subId) {
             unlockBtn.disabled = true;
             try {
                 const response = await fetch(SCRIPT_URL, {
-                    method: 'POST', mode: 'cors', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'verifySolutionKey', assignmentId: assignmentId, key: enteredKey })
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'verifySolutionKey',
+                        assignmentId: assignmentId,
+                        key: enteredKey,
+                        org: ORG_PREFIX // ✅ NEW: Send the organization prefix
+                    })
                 });
                 const result = await response.json();
                 if (result.isValid) {

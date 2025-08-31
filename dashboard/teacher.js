@@ -3,7 +3,7 @@
 //   :::::: F I L E :   d a s h b o a r d / t e a c h e r . j s ::::::
 // ────────────────────────────────────────────────────────────────
 //
-import { SCRIPT_URL } from '../js/config.js';
+import { SCRIPT_URL, ORG_PREFIX } from '../js/config.js'; // Import ORG_PREFIX
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginOverlay = document.getElementById('login-overlay');

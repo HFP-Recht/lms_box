@@ -1,4 +1,4 @@
-import { SCRIPT_URL } from './config.js';
+import { SCRIPT_URL, ORG_PREFIX } from './config.js'; // Import ORG_PREFIX
 import { renderSubAssignment } from './renderer.js';
 import { printAssignmentAnswers } from './printer.js';
 import { submitAllAssignments } from './submission.js';
@@ -14,12 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Attach event listeners to action buttons
     document.getElementById('submit-all').addEventListener('click', submitAllAssignments);
     document.getElementById('print-answers').addEventListener('click', () => printAssignmentAnswers(assignmentId));
 
-    // Fetch assignment data from the secure Google Apps Script backend
-    const fetchUrl = `${SCRIPT_URL}?assignmentId=${assignmentId}`;
+    // ✅ UPDATED: Add the org parameter to the fetch URL
+    const fetchUrl = `${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}`;
     
     fetch(fetchUrl)
         .then(response => {

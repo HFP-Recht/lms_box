@@ -1,4 +1,4 @@
-import { SCRIPT_URL } from './config.js';
+import { SCRIPT_URL, ORG_PREFIX } from './config.js'; // Import ORG_PREFIX
 
 const ANSWER_PREFIX = 'modular-answer_';
 const QUESTIONS_PREFIX = 'modular-questions_';
@@ -11,7 +11,7 @@ async function gatherAssignmentData(assignmentId) {
     let serverSubAssignments = {};
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?assignmentId=${assignmentId}`);
+        const response = await fetch(`${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}`);
         if (!response.ok) throw new Error(`Server responded with status ${response.status}`);
         const data = await response.json();
         if (data.status === 'error') throw new Error(data.message);

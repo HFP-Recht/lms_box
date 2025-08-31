@@ -172,8 +172,8 @@ export async function submitAllAssignments() {
             body: JSON.stringify({
                 action: 'submit',
                 identifier: submissionData.identifier,
-                payload: submissionData.payload
-                // ✅ REMOVED: submissionToken is no longer sent
+                payload: submissionData.payload,
+                org: ORG_PREFIX // ✅ NEW: Send the organization prefix
             })
         });
         const result = await response.json();
