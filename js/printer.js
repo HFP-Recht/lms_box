@@ -104,7 +104,7 @@ function convertMarkdownToHTML(text) {
 }
 
 function generatePrintHTML(data) {
-    let bodyContent = `<h1>${convertMarkdownToHTML(data.assignmentTitle)}</h1><p><strong>Schüler/in:</strong> ${data.studentIdentifier}</p><hr>`;
+    let bodyContent = `<h1>${convertMarkdownToHTML(data.assignmentTitle)}</h1><p><strong>Name:</strong> ${data.studentIdentifier}</p><hr>`;
     const sortedSubIds = Object.keys(data.subAssignments).sort();
 
     for (const subId of sortedSubIds) {
