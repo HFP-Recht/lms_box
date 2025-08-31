@@ -7,18 +7,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const assignmentId = urlParams.get('assignmentId');
     const subId = urlParams.get('subId');
+    const variant = urlParams.get('variant'); // ✅ NEW: Get the variant from the URL
 
-    if (!assignmentId || !subId) {
+    if (!assignmentId || !subId || !variant) { // ✅ UPDATED: Also check for variant
         document.getElementById('main-title').textContent = 'Fehler';
-        document.getElementById('content-renderer').innerHTML = '<p>Keine `assignmentId` oder `subId` in der URL gefunden.</p>';
+        document.getElementById('content-renderer').innerHTML = '<p>Keine `assignmentId`, `subId` oder `variant` in der URL gefunden.</p>';
         return;
     }
 
     document.getElementById('submit-all').addEventListener('click', submitAllAssignments);
-    document.getElementById('print-answers').addEventListener('click', () => printAssignmentAnswers(assignmentId));
+    // ✅ UPDATED: Pass the variant to the print function
+    document.getElementById('print-answers').addEventListener('click', () => printAssignmentAnswers(assignmentId, variant));
 
-    // ✅ UPDATED: Add the org parameter to the fetch URL
-    const fetchUrl = `${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}`;
+    // ✅ UPDATED: Add the variant parameter to the fetch URL
+    const fetchUrl = `${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}&variant=${variant}`;
     
     fetch(fetchUrl)
         .then(response => {

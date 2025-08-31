@@ -5,13 +5,15 @@ const QUESTIONS_PREFIX = 'modular-questions_';
 const TITLE_PREFIX = 'title_';
 const TYPE_PREFIX = 'type_';
 
-async function gatherAssignmentData(assignmentId) {
+// ✅ UPDATED: The function now accepts a 'variant'
+async function gatherAssignmentData(assignmentId, variant) { 
     const studentIdentifier = localStorage.getItem('studentIdentifier') || 'Unbekannter Schüler';
     let mainTitle = `Aufgabe: ${assignmentId}`;
     let serverSubAssignments = {};
 
     try {
-        const response = await fetch(`${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}`);
+        // ✅ UPDATED: The fetch URL now includes the variant
+        const response = await fetch(`${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}&variant=${variant}`);
         if (!response.ok) throw new Error(`Server responded with status ${response.status}`);
         const data = await response.json();
         if (data.status === 'error') throw new Error(data.message);
@@ -96,6 +98,7 @@ async function gatherAssignmentData(assignmentId) {
     return { studentIdentifier, assignmentTitle: mainTitle, subAssignments: finalSubAssignments };
 }
 
+// ... (The generatePrintHTML function does not need changes) ...
 function convertMarkdownToHTML(text) {
     if (!text) return text;
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -141,8 +144,10 @@ function generatePrintHTML(data) {
     return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Druckansicht: ${data.assignmentTitle}</title><style>${css}</style></head><body>${bodyContent}</body></html>`;
 }
 
-export async function printAssignmentAnswers(assignmentId) {
-    const data = await gatherAssignmentData(assignmentId);
+
+// ✅ UPDATED: The main export function now accepts and passes on the 'variant'
+export async function printAssignmentAnswers(assignmentId, variant) {
+    const data = await gatherAssignmentData(assignmentId, variant);
     if (!data) return;
     const htmlContent = generatePrintHTML(data);
     const printWindow = window.open('', '_blank');
