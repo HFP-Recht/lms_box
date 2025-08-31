@@ -6,7 +6,7 @@
     <title>Aufgabe - Fallstudie</title>
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
-    <!-- ✅ NEW: Custom styles for the law case layout -->
+    <!-- ✅ UPDATED: Custom styles for law case and new hint feature -->
     <style>
         #case-text-container {
             background-color: #e9ecef;
@@ -29,7 +29,32 @@
             font-style: italic;
         }
         .law-step .quill-editor-small {
-            height: 150px; /* Set a default height for the small editors */
+            height: 150px;
+        }
+        /* ✅ NEW: Styles for the hint feature */
+        .hint-container {
+            margin-top: 10px;
+        }
+        .hint-btn {
+            padding: 5px 12px;
+            font-size: 0.9em;
+            border: 1px solid #6c757d;
+            border-radius: 4px;
+            background-color: transparent;
+            color: #6c757d;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .hint-btn:hover {
+            background-color: #f8f9fa;
+        }
+        .hint-box {
+            margin-top: 8px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            color: #856404;
         }
     </style>
 </head>
@@ -40,7 +65,6 @@
             <h3 id="sub-title"></h3>
         </header>
         
-        <!-- ✅ NEW: Dedicated containers for the law case layout -->
         <main id="content-renderer">
             <div id="case-text-container">
                 <p>Lade Falltext...</p>
