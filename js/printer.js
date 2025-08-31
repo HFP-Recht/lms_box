@@ -112,7 +112,7 @@ function generatePrintHTML(data) {
         bodyContent += `<div class="sub-assignment"><h2>${convertMarkdownToHTML(subData.title)}</h2>`;
 
         if (subData.type === 'law_case') {
-            bodyContent += `<h3>Fall:</h3><div class="case-text-box">${subData.caseText.replace(/\n/g, '<br>')}</div>`;
+            bodyContent += `<h3>Sachverhalt</h3><div class="case-text-box">${subData.caseText.replace(/\n/g, '<br>')}</div>`;
             const steps = [
                 { id: 'step_1', title: '1. Sachverhalt analysieren', description: 'Was ist passiert? Wer ist beteiligt? Wer macht was geltend? Welche rechtlichen Fragen stellen sich?' },
                 { id: 'step_2', title: '2. Relevante Regel finden', description: 'Welches Rechtsgebiet ist betroffen? In welcher Rechtsvorschrift ist die Frage geregelt?' },
