@@ -3,31 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aufgabe - Teil 2</title> <!-- Title updated for clarity -->
+    <title>Aufgabe - Fallstudie</title>
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <!-- ✅ NEW: Custom styles for the law case layout -->
+    <style>
+        #case-text-container {
+            background-color: #e9ecef;
+            padding: 1.5em;
+            border-radius: 8px;
+            margin-bottom: 2em;
+            border-left: 5px solid #6c757d;
+        }
+        .law-step {
+            margin-bottom: 2.5em;
+        }
+        .law-step h3 {
+            margin-bottom: 0.25em;
+            font-size: 1.2em;
+            color: #343a40;
+        }
+        .law-step p {
+            margin-top: 0;
+            color: #495057;
+            font-style: italic;
+        }
+        .law-step .quill-editor-small {
+            height: 150px; /* Set a default height for the small editors */
+        }
+    </style>
 </head>
 <body>
-    <!-- This page represents the secondary assignment part (e.g., subId=partB) -->
     <div id="assignment-container">
         <header id="assignment-header">
             <h2 id="main-title">Lade Aufgabe...</h2>
             <h3 id="sub-title"></h3>
         </header>
         
-        <main id="content-renderer"></main>
+        <!-- ✅ NEW: Dedicated containers for the law case layout -->
+        <main id="content-renderer">
+            <div id="case-text-container">
+                <p>Lade Falltext...</p>
+            </div>
+            <div id="law-steps-container">
+                <!-- The 4 steps with their Quill editors will be rendered here by renderer.js -->
+            </div>
+        </main>
         
         <div id="solution-section" style="display: none; margin-top: 20px;">
             <details id="solution-dropdown">
                 <summary>Musterlösung anzeigen</summary>
-                
-                <div id="solution-unlock-container" style="margin-top: 10px;">
-                    <!-- Das Eingabefeld wird von renderer.js hier eingefügt -->
-                </div>
-
-                <div id="solution-display-container" style="display: none;">
-                    <!-- Die freigeschaltete Lösung wird von renderer.js hier eingefügt -->
-                </div>
+                <div id="solution-unlock-container" style="margin-top: 10px;"></div>
+                <div id="solution-display-container" style="display: none;"></div>
             </details>
         </div>
 
