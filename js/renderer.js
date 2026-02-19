@@ -8,7 +8,7 @@ const SOLUTION_KEYS_STORE = 'modular-assignment-keys-store';
 
 function debounce(func, wait) {
     let timeout;
-    return function(...args) {
+    return function (...args) {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
@@ -57,7 +57,7 @@ function renderLawCase(data, assignmentId, subId) {
 
         const quill = new Quill(`#${editorId}`, {
             theme: 'snow',
-            modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'ordered'}, { 'list': 'bullet' }]] }
+            modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'ordered' }, { 'list': 'bullet' }]] }
         });
         quillInstances.push({ id: step.id, instance: quill });
 
@@ -86,38 +86,42 @@ function renderLawCase(data, assignmentId, subId) {
         }
     });
 
-    const saveAllAnswers = debounce(() => {
-        const allAnswers = {};
+}, 500);
+
+const saveAllAnswers = debounce(() => {
+    const allAnswers = {};
+    quillInstances.forEach(item => {
+        const content = item.instance.root.innerHTML;
+        if (content && content !== '<p><br></p>') {
+            allAnswers[item.id] = content;
+        }
+    });
+    if (Object.keys(allAnswers).length > 0) {
+        localStorage.setItem(storageKey, JSON.stringify(allAnswers));
+    } else {
+        localStorage.removeItem(storageKey);
+    }
+    // ✅ NEW: Dispatch event for auto-save
+    window.dispatchEvent(new CustomEvent('assignment-updated'));
+}, 500);
+
+const savedAnswersRaw = localStorage.getItem(storageKey);
+if (savedAnswersRaw) {
+    try {
+        const savedAnswers = JSON.parse(savedAnswersRaw);
         quillInstances.forEach(item => {
-            const content = item.instance.root.innerHTML;
-            if (content && content !== '<p><br></p>') {
-                allAnswers[item.id] = content;
+            if (savedAnswers[item.id]) {
+                item.instance.root.innerHTML = savedAnswers[item.id];
             }
         });
-        if (Object.keys(allAnswers).length > 0) {
-            localStorage.setItem(storageKey, JSON.stringify(allAnswers));
-        } else {
-            localStorage.removeItem(storageKey);
-        }
-    }, 500);
+    } catch (e) { console.error("Could not parse saved law case answers:", e); }
+}
 
-    const savedAnswersRaw = localStorage.getItem(storageKey);
-    if (savedAnswersRaw) {
-        try {
-            const savedAnswers = JSON.parse(savedAnswersRaw);
-            quillInstances.forEach(item => {
-                if (savedAnswers[item.id]) {
-                    item.instance.root.innerHTML = savedAnswers[item.id];
-                }
-            });
-        } catch (e) { console.error("Could not parse saved law case answers:", e); }
-    }
+quillInstances.forEach(item => {
+    item.instance.on('text-change', saveAllAnswers);
+});
 
-    quillInstances.forEach(item => {
-        item.instance.on('text-change', saveAllAnswers);
-    });
-    
-    localStorage.setItem(`${TITLE_PREFIX}${assignmentId}_sub_${subId}_caseText`, data.caseText);
+localStorage.setItem(`${TITLE_PREFIX}${assignmentId}_sub_${subId}_caseText`, data.caseText);
 }
 
 /**
@@ -150,6 +154,8 @@ function renderQuill(data, assignmentId, subId) {
         } else {
             localStorage.removeItem(storageKey);
         }
+        // ✅ NEW: Dispatch event for auto-save
+        window.dispatchEvent(new CustomEvent('assignment-updated'));
     }, 500));
 }
 
@@ -204,7 +210,7 @@ export function renderSubAssignment(assignmentData, assignmentId, subId) {
                          </div>`;
             });
         }
-        
+
         solutionDisplayContainer.innerHTML = html;
         solutionDisplayContainer.style.display = 'block';
         solutionUnlockContainer.style.display = 'none';
@@ -258,7 +264,7 @@ export function renderSubAssignment(assignmentData, assignmentId, subId) {
         keyInput.addEventListener('keydown', (e) => { statusEl.textContent = ''; if (e.key === 'Enter') verifyKey(); });
         if (prefilledKey) { verifyKey(); }
     };
-    
+
     if (subAssignmentData.solution && Array.isArray(subAssignmentData.solution.solutions) && subAssignmentData.solution.solutions.length > 0) {
         solutionSection.style.display = 'block';
         setupSolutionUnlockUI();

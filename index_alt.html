@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,27 +15,40 @@
             border-radius: 8px;
             margin-bottom: 2em;
             border-left: 5px solid #6c757d;
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            max-height: 40vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
+
         .law-step {
             margin-bottom: 2.5em;
         }
+
         .law-step h3 {
             margin-bottom: 0.25em;
             font-size: 1.2em;
             color: #343a40;
         }
+
         .law-step p {
             margin-top: 0;
             color: #495057;
             font-style: italic;
         }
+
         .law-step .quill-editor-small {
-            height: 150px;
+            height: 112.5px;
         }
+
         /* ✅ NEW: Styles for the hint feature */
         .hint-container {
             margin-top: 10px;
         }
+
         .hint-btn {
             padding: 5px 12px;
             font-size: 0.9em;
@@ -45,9 +59,11 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
+
         .hint-btn:hover {
             background-color: #f8f9fa;
         }
+
         .hint-box {
             margin-top: 8px;
             padding: 10px;
@@ -58,13 +74,14 @@
         }
     </style>
 </head>
+
 <body>
     <div id="assignment-container">
         <header id="assignment-header">
             <h2 id="main-title">Lade Aufgabe...</h2>
             <h3 id="sub-title"></h3>
         </header>
-        
+
         <main id="content-renderer">
             <div id="case-text-container">
                 <p>Lade Falltext...</p>
@@ -73,7 +90,7 @@
                 <!-- The 4 steps with their Quill editors will be rendered here by renderer.js -->
             </div>
         </main>
-        
+
         <div id="solution-section" style="display: none; margin-top: 20px;">
             <details id="solution-dropdown">
                 <summary>Musterlösung anzeigen</summary>
@@ -91,4 +108,5 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="js/app.js" type="module"></script>
 </body>
+
 </html>

@@ -3,7 +3,8 @@
 //   :::::: F I L E :   j s / s u b m i s s i o n . j s ::::::
 // ─────────────────────────────────────────────────────────────────
 //
-import { SCRIPT_URL, ORG_PREFIX } from './config.js'; // ✅ FIX: Added ORG_PREFIX to the import
+import { SCRIPT_URL, ORG_PREFIX } from './config.js';
+import { StatusUI } from './status-ui.js';
 
 const ANSWER_PREFIX = 'modular-answer_';
 const QUESTIONS_PREFIX = 'modular-questions_';
@@ -11,39 +12,95 @@ const TITLE_PREFIX = 'title_';
 const TYPE_PREFIX = 'type_';
 
 // ✅ NEW: Key for storing student info as an object
-const STUDENT_INFO_KEY = 'studentInfo'; 
+const STUDENT_INFO_KEY = 'studentInfo';
 
 /**
- * ✅ UPDATED: Gathers student info (Klasse and Name).
- * Prompts the user if the info is not already in localStorage.
- * @returns {object|null} An object with {klasse, name} or null if aborted.
+ * ✅ NEW: Ensures we have student info. Shows a blocking modal if missing.
+ * usage: await requireStudentInfo();
  */
-async function getStudentInfo() {
+export async function requireStudentInfo() {
     let storedInfo = localStorage.getItem(STUDENT_INFO_KEY);
     if (storedInfo) {
         try {
-            return JSON.parse(storedInfo);
+            const parsed = JSON.parse(storedInfo);
+            StatusUI.setAuthStatus(parsed.name);
+            return parsed;
         } catch (e) {
-            console.error("Could not parse student info, prompting again.", e);
+            console.error("Could not parse student info.", e);
         }
     }
 
-    const klasse = prompt('Bitte gib deine Klasse ein (z.B. "8A"):', '');
-    if (!klasse) {
-        alert('Aktion abgebrochen. Die Klasse ist erforderlich.');
-        return null;
-    }
+    // If we are here, we need to ask the user.
+    return new Promise((resolve) => {
+        // Check if modal already exists
+        if (document.getElementById('login-modal')) return;
 
-    const name = prompt('Bitte gib deinen Namen ein:', '');
-    if (!name) {
-        alert('Aktion abgebrochen. Der Name ist erforderlich.');
-        return null;
-    }
+        const modal = document.createElement('div');
+        modal.id = 'login-modal';
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85); display: flex;
+            justify-content: center; align-items: center; z-index: 3000;
+        `;
 
-    const studentInfo = { klasse: klasse.trim(), name: name.trim() };
-    localStorage.setItem(STUDENT_INFO_KEY, JSON.stringify(studentInfo));
-    return studentInfo;
+        modal.innerHTML = `
+            <div style="background: white; padding: 2.5em; border-radius: 12px; text-align: center; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+                <h2 style="margin-top: 0; color: #333;">Willkommen! 👋</h2>
+                <p style="color: #666; margin-bottom: 20px;">Damit deine Arbeit <strong>automatisch gespeichert</strong> werden kann, benötigen wir kurz deinen Namen.</p>
+                
+                <div style="text-align: left; margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #444;">Klasse:</label>
+                    <input type="text" id="login-class" placeholder="z.B. 8A" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+                </div>
+
+                <div style="text-align: left; margin-bottom: 25px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #444;">Vorname & Nachname:</label>
+                    <input type="text" id="login-name" placeholder="z.B. Max Muster" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+                </div>
+
+                <button id="login-submit" style="width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s;">Starten 🚀</button>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const btn = document.getElementById('login-submit');
+        const inputClass = document.getElementById('login-class');
+        const inputName = document.getElementById('login-name');
+
+        const saveAndClose = () => {
+            const k = inputClass.value.trim();
+            const n = inputName.value.trim();
+
+            if (!k || !n) {
+                alert("Bitte fülle beide Felder aus.");
+                return;
+            }
+
+            const info = { klasse: k, name: n };
+            localStorage.setItem(STUDENT_INFO_KEY, JSON.stringify(info));
+            StatusUI.setAuthStatus(n);
+            modal.remove();
+            resolve(info);
+        };
+
+        btn.addEventListener('click', saveAndClose);
+        inputName.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveAndClose(); });
+    });
 }
+
+// ✅ NEW: Sync Identity across tabs/iframes
+window.addEventListener('storage', (e) => {
+    if (e.key === STUDENT_INFO_KEY && e.newValue) {
+        try {
+            const info = JSON.parse(e.newValue);
+            StatusUI.setAuthStatus(info.name);
+            // Optionally remove modal if it's open in this tab
+            const modal = document.getElementById('login-modal');
+            if (modal) modal.remove();
+        } catch (err) { }
+    }
+});
 
 // ✅ REMOVED: The getSubmissionToken function is no longer needed.
 
@@ -59,7 +116,7 @@ async function gatherAllDataForSubmission(studentInfo) {
         if (match) {
             const [, assignmentId, subId] = match;
             if (!allDataPayload[assignmentId]) allDataPayload[assignmentId] = {};
-            
+
             allDataPayload[assignmentId][subId] = {
                 answer: localStorage.getItem(key) || '',
                 title: localStorage.getItem(`${TITLE_PREFIX}${assignmentId}_sub_${subId}`) || '',
@@ -139,55 +196,79 @@ function showConfirmationDialog(studentInfo) {
 }
 
 
-export async function submitAllAssignments() {
-    const studentInfo = await getStudentInfo();
-    if (!studentInfo) return; // Aborted during info gathering
-    
-    // ✅ UPDATED: Show custom confirmation dialog instead of generic confirm()
-    const isConfirmed = await showConfirmationDialog(studentInfo);
-    if (!isConfirmed) {
-        alert("Aktion abgebrochen.");
-        return;
+export async function submitAllAssignments(silent = false) {
+    // In silent mode, we don't block. We just check if we have info.
+    // However, if we call requireStudentInfo() on load, we should have it.
+    let studentInfo = null;
+
+    if (silent) {
+        const stored = localStorage.getItem(STUDENT_INFO_KEY);
+        if (stored) {
+            try { studentInfo = JSON.parse(stored); } catch (e) { }
+        }
+        if (!studentInfo) return; // Silent abort if no user info
+    } else {
+        studentInfo = await requireStudentInfo();
     }
-    
+
+    if (!studentInfo) return;
+
+    // Only ask for confirmation if NOT silent
+    if (!silent) {
+        const isConfirmed = await showConfirmationDialog(studentInfo);
+        if (!isConfirmed) return;
+    }
+
     const submissionData = await gatherAllDataForSubmission(studentInfo);
     if (!submissionData) return;
 
     if (!SCRIPT_URL || SCRIPT_URL.includes('YOUR_CLOUD_FUNCTION_TRIGGER_URL')) {
-        alert('Konfigurationsfehler: Die Abgabe-URL ist nicht in js/config.js festgelegt.');
+        if (!silent) alert('Konfigurationsfehler: Die Abgabe-URL ist nicht in js/config.js festgelegt.');
         return;
     }
 
     const submitButton = document.getElementById('submit-all');
-    submitButton.textContent = 'Wird übermittelt...';
-    submitButton.disabled = true;
+    if (!silent) {
+        submitButton.textContent = 'Wird übermittelt...';
+        submitButton.disabled = true;
+    } else {
+        StatusUI.setSaveStatus('saving');
+    }
 
     try {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 action: 'submit',
                 identifier: submissionData.identifier,
                 payload: submissionData.payload,
-                org: ORG_PREFIX // ✅ NEW: Send the organization prefix
+                org: ORG_PREFIX
             })
         });
         const result = await response.json();
 
         if (response.ok && result.status === 'success') {
-            alert('Daten wurden erfolgreich übermittelt.');
+            if (!silent) {
+                alert('Daten wurden erfolgreich übermittelt.');
+            } else {
+                StatusUI.setSaveStatus('saved');
+            }
         } else {
             throw new Error(result.message || 'Ein unbekannter Server-Fehler ist aufgetreten.');
         }
     } catch (error) {
         console.error('Submission failed:', error);
-        alert(`Fehler beim Senden der Daten.\n\nFehler: ${error.message}`);
+        if (!silent) {
+            alert(`Fehler beim Senden der Daten.\n\nFehler: ${error.message}`);
+        } else {
+            StatusUI.setSaveStatus('error');
+        }
     } finally {
-        submitButton.textContent = 'Alle Aufträge abgeben';
-        submitButton.disabled = false;
+        if (!silent) {
+            submitButton.textContent = 'Alle Aufträge abgeben';
+            submitButton.disabled = false;
+        }
     }
 }

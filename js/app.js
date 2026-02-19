@@ -1,9 +1,29 @@
 import { SCRIPT_URL, ORG_PREFIX } from './config.js'; // Import ORG_PREFIX
 import { renderSubAssignment } from './renderer.js';
 import { printAssignmentAnswers } from './printer.js';
-import { submitAllAssignments } from './submission.js';
+import { submitAllAssignments, requireStudentInfo } from './submission.js';
+import { StatusUI } from './status-ui.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+let autoSaveTimer = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Initialize Status UI
+    StatusUI.init();
+
+    // 2. Force Login (or load existing)
+    await requireStudentInfo();
+
+    // 3. Setup Auto-Save Listener (Debounced 5s)
+    window.addEventListener('assignment-updated', () => {
+        StatusUI.setSaveStatus('local'); // Show local save immediately
+
+        if (autoSaveTimer) clearTimeout(autoSaveTimer);
+
+        autoSaveTimer = setTimeout(() => {
+            submitAllAssignments(true); // silent = true
+        }, 5000); // 5 seconds debounce
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
     const assignmentId = urlParams.get('assignmentId');
     const subId = urlParams.get('subId');
@@ -19,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ✅ UPDATED: Add the org parameter to the fetch URL
     const fetchUrl = `${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}`;
-    
+
     fetch(fetchUrl)
         .then(response => {
             if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
@@ -31,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('main-title').textContent = data.assignmentTitle;
             const subAssignmentData = data.subAssignments[subId];
             if (!subAssignmentData) throw new Error(`Teilaufgabe "${subId}" nicht gefunden.`);
-            
+
             renderSubAssignment(data, assignmentId, subId);
         })
         .catch(error => {
