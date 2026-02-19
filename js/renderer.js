@@ -267,7 +267,8 @@ export function renderSubAssignment(assignmentData, assignmentId, subId) {
 
     if (subAssignmentData.solution && Array.isArray(subAssignmentData.solution.solutions) && subAssignmentData.solution.solutions.length > 0) {
         solutionSection.style.display = 'block';
-        setupSolutionUnlockUI();
+        // setupSolutionUnlockUI(); // DISABLED: Solutions are always shown
+        displaySolution();
     } else {
         solutionSection.style.display = 'none';
     }
