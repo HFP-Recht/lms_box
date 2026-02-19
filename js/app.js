@@ -3,7 +3,6 @@ import { renderSubAssignment } from './renderer.js';
 import { printAssignmentAnswers } from './printer.js';
 import { submitAllAssignments, requireStudentInfo } from './submission.js';
 import { StatusUI } from './status-ui.js';
-import { exportBackup, importBackupTrigger } from './backup.js';
 
 let autoSaveTimer = null;
 
@@ -37,12 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('submit-all').addEventListener('click', submitAllAssignments);
     document.getElementById('print-answers').addEventListener('click', () => printAssignmentAnswers(assignmentId));
-
-    // ✅ Backup Logic
-    const btnExport = document.getElementById('backup-export');
-    const btnImport = document.getElementById('backup-import');
-    if (btnExport) btnExport.addEventListener('click', exportBackup);
-    if (btnImport) btnImport.addEventListener('click', importBackupTrigger);
 
     // ✅ UPDATED: Add the org parameter to the fetch URL
     // Use CONTENT_ORG to read the shared assignment definitions
