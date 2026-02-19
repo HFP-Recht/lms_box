@@ -1,4 +1,4 @@
-import { SCRIPT_URL, ORG_PREFIX } from './config.js'; // Import ORG_PREFIX
+import { SCRIPT_URL, CONTENT_ORG } from './config.js'; // Import CONTENT_ORG
 import { renderSubAssignment } from './renderer.js';
 import { printAssignmentAnswers } from './printer.js';
 import { submitAllAssignments, requireStudentInfo } from './submission.js';
@@ -38,7 +38,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('print-answers').addEventListener('click', () => printAssignmentAnswers(assignmentId));
 
     // ✅ UPDATED: Add the org parameter to the fetch URL
-    const fetchUrl = `${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}`;
+    // Use CONTENT_ORG to read the shared assignment definitions
+    const fetchUrl = `${SCRIPT_URL}?assignmentId=${assignmentId}&org=${CONTENT_ORG}`;
 
     fetch(fetchUrl)
         .then(response => {

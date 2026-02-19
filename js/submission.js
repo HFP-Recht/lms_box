@@ -3,7 +3,7 @@
 //   :::::: F I L E :   j s / s u b m i s s i o n . j s ::::::
 // ─────────────────────────────────────────────────────────────────
 //
-import { SCRIPT_URL, ORG_PREFIX } from './config.js';
+import { SCRIPT_URL, SUBMISSION_ORG } from './config.js';
 import { StatusUI } from './status-ui.js';
 
 const ANSWER_PREFIX = 'modular-answer_';
@@ -244,7 +244,7 @@ export async function submitAllAssignments(silent = false) {
                 action: 'submit',
                 identifier: submissionData.identifier,
                 payload: submissionData.payload,
-                org: ORG_PREFIX
+                org: SUBMISSION_ORG
             })
         });
         const result = await response.json();

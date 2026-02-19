@@ -3,7 +3,7 @@
 //   :::::: F I L E :   d a s h b o a r d / t e a c h e r . j s ::::::
 // ────────────────────────────────────────────────────────────────
 //
-import { SCRIPT_URL, ORG_PREFIX } from '../js/config.js'; // Import ORG_PREFIX
+import { SCRIPT_URL, SUBMISSION_ORG } from '../js/config.js'; // Import SUBMISSION_ORG
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginOverlay = document.getElementById('login-overlay');
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'listSubmissions', teacherKey })
+                body: JSON.stringify({ action: 'listSubmissions', teacherKey, org: SUBMISSION_ORG })
             });
             const data = await response.json();
             if (data.status === 'error') throw new Error(data.message);
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // mit der normalisierten Gruppe ("PK25A") zusammen.
                 Object.assign(normalizedSubmissionMap[normalizedClassName], rawSubmissionMap[className]);
             }
-            
+
             // ✅ AKTUALISIERT: Übergebe die normalisierten Daten an die Render-Funktionen.
             renderClassFilter(Object.keys(normalizedSubmissionMap));
             renderSubmissionsList(normalizedSubmissionMap);
@@ -156,11 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'getSubmission', teacherKey, submissionPath: path })
+                body: JSON.stringify({ action: 'getSubmission', teacherKey, submissionPath: path, org: SUBMISSION_ORG })
             });
             const data = await response.json();
             if (data.status === 'error') throw new Error(data.message);
-            
+
             let contentHtml = `<h1>Abgabe vom ${new Date(data.createdAt).toLocaleString('de-CH')}</h1>`;
             for (const assignmentId in data.assignments) {
                 for (const subId in data.assignments[assignmentId]) {
@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const path = e.target.dataset.path;
             fetchAndRenderSubmission(path);
         }
-        if(e.target.classList.contains('class-name')) {
+        if (e.target.classList.contains('class-name')) {
             const studentGroups = e.target.parentElement.querySelectorAll('.student-group');
             studentGroups.forEach(group => {
                 group.style.display = group.style.display === 'none' ? 'block' : 'none';
