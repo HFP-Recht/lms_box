@@ -86,42 +86,42 @@ function renderLawCase(data, assignmentId, subId) {
         }
     });
 
-}, 500);
 
-const saveAllAnswers = debounce(() => {
-    const allAnswers = {};
-    quillInstances.forEach(item => {
-        const content = item.instance.root.innerHTML;
-        if (content && content !== '<p><br></p>') {
-            allAnswers[item.id] = content;
-        }
-    });
-    if (Object.keys(allAnswers).length > 0) {
-        localStorage.setItem(storageKey, JSON.stringify(allAnswers));
-    } else {
-        localStorage.removeItem(storageKey);
-    }
-    // ✅ NEW: Dispatch event for auto-save
-    window.dispatchEvent(new CustomEvent('assignment-updated'));
-}, 500);
 
-const savedAnswersRaw = localStorage.getItem(storageKey);
-if (savedAnswersRaw) {
-    try {
-        const savedAnswers = JSON.parse(savedAnswersRaw);
+    const saveAllAnswers = debounce(() => {
+        const allAnswers = {};
         quillInstances.forEach(item => {
-            if (savedAnswers[item.id]) {
-                item.instance.root.innerHTML = savedAnswers[item.id];
+            const content = item.instance.root.innerHTML;
+            if (content && content !== '<p><br></p>') {
+                allAnswers[item.id] = content;
             }
         });
-    } catch (e) { console.error("Could not parse saved law case answers:", e); }
-}
+        if (Object.keys(allAnswers).length > 0) {
+            localStorage.setItem(storageKey, JSON.stringify(allAnswers));
+        } else {
+            localStorage.removeItem(storageKey);
+        }
+        // ✅ NEW: Dispatch event for auto-save
+        window.dispatchEvent(new CustomEvent('assignment-updated'));
+    }, 500);
 
-quillInstances.forEach(item => {
-    item.instance.on('text-change', saveAllAnswers);
-});
+    const savedAnswersRaw = localStorage.getItem(storageKey);
+    if (savedAnswersRaw) {
+        try {
+            const savedAnswers = JSON.parse(savedAnswersRaw);
+            quillInstances.forEach(item => {
+                if (savedAnswers[item.id]) {
+                    item.instance.root.innerHTML = savedAnswers[item.id];
+                }
+            });
+        } catch (e) { console.error("Could not parse saved law case answers:", e); }
+    }
 
-localStorage.setItem(`${TITLE_PREFIX}${assignmentId}_sub_${subId}_caseText`, data.caseText);
+    quillInstances.forEach(item => {
+        item.instance.on('text-change', saveAllAnswers);
+    });
+
+    localStorage.setItem(`${TITLE_PREFIX}${assignmentId}_sub_${subId}_caseText`, data.caseText);
 }
 
 /**
