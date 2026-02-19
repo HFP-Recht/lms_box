@@ -186,7 +186,7 @@ export function renderSubAssignment(assignmentData, assignmentId, subId) {
     const displaySolution = () => {
         const solutionData = subAssignmentData.solution;
         const solutionMap = new Map(solutionData.solutions.map(s => [s.id, s.answer]));
-        let html = `<h3>Musterlösung (Seite ${solutionData.page})</h3>`;
+        let html = `<h3>Musterlösung${solutionData.page ? ` (Seite ${solutionData.page})` : ''}</h3>`;
 
         if (subAssignmentData.type === 'law_case') {
             const steps = [
