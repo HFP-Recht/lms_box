@@ -112,6 +112,24 @@ body {
     font-weight: bold;
     font-size: 1.1em;
     margin-bottom: 0.5em;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+}
+.student-name::before {
+    content: '▶';
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 0.8em;
+    transition: transform 0.2s;
+    color: #666;
+}
+.student-name.active::before {
+    transform: rotate(90deg);
+}
+.student-submissions {
+    display: block; /* Expanded by default */
 }
 .submission-file {
     display: block;

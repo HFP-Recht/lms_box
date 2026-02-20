@@ -128,19 +128,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const sortedClasses = Object.keys(submissionMap).sort();
 
         for (const klasse of sortedClasses) {
-            // Der `data-class-name` und der angezeigte Name sind jetzt konsistent grossgeschrieben.
             html += `<div class="class-group" data-class-name="${klasse}">
                         <div class="class-name">${klasse}</div>`;
             const students = submissionMap[klasse];
             const sortedStudents = Object.keys(students).sort();
 
             for (const studentName of sortedStudents) {
+                // ✅ UPDATED: Find only the latest submission
+                const files = students[studentName];
+                // Sort files by path (which usually contains the timestamp/counter) descending
+                files.sort((a, b) => b.path.localeCompare(a.path));
+                const latestFile = files[0];
+
                 html += `<div class="student-group">
-                            <div class="student-name">${studentName}</div>`;
-                students[studentName].forEach(file => {
-                    html += `<a class="submission-file" data-path="${file.path}">${file.name}</a>`;
-                });
-                html += `</div>`;
+                            <div class="student-name collapsible active">${studentName}</div>
+                            <div class="student-submissions">
+                                <a class="submission-file" data-path="${latestFile.path}">${latestFile.name}</a>
+                            </div>
+                         </div>`;
             }
             html += `</div>`;
         }
@@ -181,11 +186,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Delegation for Clicks ---
     submissionListContainer.addEventListener('click', (e) => {
         if (e.target.classList.contains('submission-file')) {
-            const currentActive = submissionListContainer.querySelector('.active');
+            const currentActive = submissionListContainer.querySelector('.submission-file.active');
             if (currentActive) currentActive.classList.remove('active');
             e.target.classList.add('active');
             const path = e.target.dataset.path;
             fetchAndRenderSubmission(path);
+        }
+        if (e.target.classList.contains('student-name')) {
+            e.target.classList.toggle('active');
+            const submissions = e.target.nextElementSibling;
+            if (submissions) {
+                submissions.style.display = e.target.classList.contains('active') ? 'block' : 'none';
+            }
         }
         if (e.target.classList.contains('class-name')) {
             const studentGroups = e.target.parentElement.querySelectorAll('.student-group');
