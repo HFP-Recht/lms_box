@@ -1,4 +1,4 @@
-import { SCRIPT_URL, ORG_PREFIX } from './config.js'; // Import ORG_PREFIX
+import { SCRIPT_URL, CONTENT_ORG } from './config.js'; // Import CONTENT_ORG instead of ORG_PREFIX for reading
 
 const ANSWER_PREFIX = 'modular-answer_';
 const QUESTIONS_PREFIX = 'modular-questions_';
@@ -6,14 +6,14 @@ const TITLE_PREFIX = 'title_';
 const TYPE_PREFIX = 'type_';
 
 // ✅ UPDATED: The function now accepts a 'variant'
-async function gatherAssignmentData(assignmentId, variant) { 
+async function gatherAssignmentData(assignmentId, variant) {
     const studentIdentifier = localStorage.getItem('studentIdentifier') || 'Unbekannter Schüler';
     let mainTitle = `Aufgabe: ${assignmentId}`;
     let serverSubAssignments = {};
 
     try {
-        // ✅ UPDATED: The fetch URL now includes the variant
-        const response = await fetch(`${SCRIPT_URL}?assignmentId=${assignmentId}&org=${ORG_PREFIX}&variant=${variant}`);
+        // ✅ UPDATED: The fetch URL now includes the variant and uses CONTENT_ORG for reading
+        const response = await fetch(`${SCRIPT_URL}?assignmentId=${assignmentId}&org=${CONTENT_ORG}&variant=${variant}`);
         if (!response.ok) throw new Error(`Server responded with status ${response.status}`);
         const data = await response.json();
         if (data.status === 'error') throw new Error(data.message);
@@ -60,8 +60,12 @@ async function gatherAssignmentData(assignmentId, variant) {
         }
 
         if (keyType) {
-            if (keyContent.startsWith(expectedStart)) {
-                const subId = keyContent.substring(expectedStart.length);
+            // ✅ Robust key matching with decodeURIComponent
+            const decodedKeyContent = decodeURIComponent(keyContent);
+            const decodedExpectedStart = decodeURIComponent(expectedStart);
+
+            if (decodedKeyContent.startsWith(decodedExpectedStart)) {
+                const subId = decodedKeyContent.substring(decodedExpectedStart.length);
                 if (!localSubAssignments[subId]) localSubAssignments[subId] = {};
                 const value = localStorage.getItem(key);
                 switch (keyType) {
@@ -69,7 +73,7 @@ async function gatherAssignmentData(assignmentId, variant) {
                     case 'title': localSubAssignments[subId].title = value || subId; break;
                     case 'type': localSubAssignments[subId].type = value || 'quill'; break;
                     case 'questions':
-                        try { localSubAssignments[subId].questions = JSON.parse(value || '[]'); } catch (err) {}
+                        try { localSubAssignments[subId].questions = JSON.parse(value || '[]'); } catch (err) { }
                         break;
                 }
             }
@@ -87,12 +91,13 @@ async function gatherAssignmentData(assignmentId, variant) {
             title: serverData.title || localData.title || subId,
             questions: (serverData.questions && serverData.questions.length > 0) ? serverData.questions : (localData.questions || []),
             type: serverData.type || localData.type || 'quill',
-            caseText: serverData.caseText || localData.caseText || ''
+            caseText: serverData.caseText || localData.caseText || '',
+            solution: serverData.solution || null // Include solution data
         };
     }
-    
+
     if (masterSubIdList.size === 0) {
-        finalSubAssignments['info'] = { title: 'Keine Aufgaben gefunden', questions: [{text: 'Es konnten keine Aufgabeninformationen geladen werden.'}] };
+        finalSubAssignments['info'] = { title: 'Keine Aufgaben gefunden', questions: [{ text: 'Es konnten keine Aufgabeninformationen geladen werden.' }] };
     }
 
     return { studentIdentifier, assignmentTitle: mainTitle, subAssignments: finalSubAssignments };
@@ -122,25 +127,59 @@ function generatePrintHTML(data) {
                 { id: 'step_3', title: '3. Regel analysieren', description: 'Welche rechtlichen Voraussetzungen, sogenannten Tatbestandsmerkmale, müssen erfüllt sein? Welches sind die Rechtsfolgen davon?' },
                 { id: 'step_4', title: '4. Regel auf Sachverhalt anwenden und Rechtsfolge bestimmen', description: 'Sind die Voraussetzungen im Einzelfall erfüllt?' }
             ];
+
             let answers = {};
-            try { answers = JSON.parse(subData.answer || '{}'); } catch(e) {}
+            try {
+                // Handle cases where subData.answer might be an object already (if manipulated by other scripts) or a JSON string.
+                if (typeof subData.answer === 'string' && subData.answer.trim().startsWith('{')) {
+                    answers = JSON.parse(subData.answer);
+                } else if (typeof subData.answer === 'object' && subData.answer !== null) {
+                    answers = subData.answer;
+                }
+            } catch (e) { console.error("Error parsing answers for law_case:", e); }
+
+            const solutionMap = (subData.solution && Array.isArray(subData.solution.solutions)) ? new Map(subData.solution.solutions.map(s => [s.id, s.answer])) : null;
+
             steps.forEach((step) => {
-                const answerHtml = answers[step.id] || '<div class="answer-box empty-answer-box"></div>';
-                bodyContent += `<div class="law-step-print"><h4>${step.title}</h4><p class="description-print"><em>${step.description}</em></p><div class="answer-box">${answerHtml}</div></div>`;
+                const answerContent = answers[step.id] || '';
+                const isStepEmpty = !answerContent || answerContent.trim() === '' || answerContent.trim() === '<p><br></p>';
+
+                bodyContent += `<div class="law-step-print">
+                    <h4>${step.title}</h4>
+                    <p class="description-print"><em>${step.description}</em></p>
+                    <div class="answer-box ${isStepEmpty ? 'empty-answer-box' : ''}">${isStepEmpty ? '' : answerContent}</div>`;
+
+                // ✅ NEW: Add solution directly below the answer box
+                if (solutionMap && solutionMap.has(step.id)) {
+                    bodyContent += `<div class="solution-print-nested"><strong>Musterlösung:</strong><div class="solution-answer-nested">${solutionMap.get(step.id)}</div></div>`;
+                }
+
+                bodyContent += `</div>`;
             });
         } else {
+            const isAnswerEmpty = !subData.answer || subData.answer.trim() === '' || subData.answer.trim() === '<p><br></p>';
             if (subData.questions && subData.questions.length > 0) {
                 const questionsHTML = subData.questions.map(q => `<li>${convertMarkdownToHTML(q.text)}</li>`).join('');
                 bodyContent += `<h3>Fragen:</h3><ol>${questionsHTML}</ol>`;
             }
             bodyContent += `<h3>Antwort:</h3>`;
-            const isAnswerEmpty = !subData.answer || subData.answer.trim() === '' || subData.answer.trim() === '<p><br></p>';
             bodyContent += `<div class="answer-box ${isAnswerEmpty ? 'empty-answer-box' : ''}">${isAnswerEmpty ? '' : subData.answer}</div>`;
+
+            // ✅ NEW: Still keep the solution below for standard questions if not already integrated above
+            if (subData.solution && Array.isArray(subData.solution.solutions) && subData.solution.solutions.length > 0) {
+                const solutionData = subData.solution;
+                bodyContent += `<div class="solution-print"><h3>Musterlösung${solutionData.page ? ` (Seite ${solutionData.page})` : ''}</h3>`;
+                solutionData.solutions.forEach((s, index) => {
+                    const qText = (subData.questions && subData.questions[index]) ? subData.questions[index].text : `Frage ${index + 1}`;
+                    bodyContent += `<div class="solution-step"><strong>${convertMarkdownToHTML(qText)}:</strong><div class="solution-answer">${s.answer}</div></div>`;
+                });
+                bodyContent += `</div>`;
+            }
         }
         bodyContent += `</div>`;
     }
 
-    const css = `body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; margin: 2em; } h1, h2, h3, h4 { color: #333; } h1 { font-size: 2em; border-bottom: 2px solid #ccc; padding-bottom: 0.5em; } h2 { font-size: 1.5em; background-color: #f0f0f0; padding: 0.5em; margin-top: 2em; border-left: 5px solid #007bff; } h3 { font-size: 1.1em; margin-bottom: 0.5em; margin-top: 1.5em; } .sub-assignment { page-break-inside: avoid; margin-bottom: 2em; } .answer-box { padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 0; background-color: #f9f9f9; } .answer-box p { margin-top: 0; } .empty-answer-box { position: relative; min-height: 9em; background-color: #ffffff; } .empty-answer-box::before { content: '✏'; position: absolute; top: 8px; left: 10px; color: #aaa; font-size: 0.9em; font-style: italic; } ol { padding-left: 20px; } hr { border: 0; border-top: 1px solid #ccc; } .case-text-box { background-color: #e9ecef; padding: 1em; border-radius: 4px; margin-bottom: 1.5em; } .law-step-print { margin-top: 1.5em; } .law-step-print h4 { margin-bottom: 0.25em; } .law-step-print .description-print { margin-top: 0; color: #6c757d; } @media print { h2, .case-text-box { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; } }`;
+    const css = `body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; margin: 2em; } h1, h2, h3, h4 { color: #333; } h1 { font-size: 2em; border-bottom: 2px solid #ccc; padding-bottom: 0.5em; } h2 { font-size: 1.5em; background-color: #f0f0f0; padding: 0.5em; margin-top: 2em; border-left: 5px solid #007bff; } h3 { font-size: 1.1em; margin-bottom: 0.5em; margin-top: 1.5em; } .sub-assignment { page-break-inside: avoid; margin-bottom: 2em; } .answer-box { padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-top: 0; background-color: #f9f9f9; } .answer-box p { margin-top: 0; } .empty-answer-box { position: relative; min-height: 9em; background-color: #ffffff; } .empty-answer-box::before { content: '✏'; position: absolute; top: 8px; left: 10px; color: #aaa; font-size: 0.9em; font-style: italic; } ol { padding-left: 20px; } hr { border: 0; border-top: 1px solid #ccc; } .case-text-box { background-color: #e9ecef; padding: 1em; border-radius: 4px; margin-bottom: 1.5em; } .law-step-print { page-break-inside: avoid; margin-top: 1.5em; } .law-step-print h4 { margin-bottom: 0.25em; } .law-step-print .description-print { margin-top: 0; color: #6c757d; } .solution-print { margin-top: 1.5em; padding: 15px; background-color: #e9f3ff; border: 1px solid #b8daff; border-radius: 4px; color: #004085; } .solution-print h3 { margin-top: 0; border-bottom: 1px solid #b8daff; padding-bottom: 5px; } .solution-print-nested { margin-top: 10px; padding: 10px; background-color: #e9f3ff; border: 1px dashed #007bff; border-radius: 4px; color: #004085; } .solution-step { margin-top: 10px; } .solution-answer, .solution-answer-nested { margin-top: 5px; padding: 8px; background-color: #ffffff; border-radius: 4px; border: 1px solid #d1ecf1; } @media print { h2, .case-text-box, .solution-print, .solution-print-nested { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; } .solution-answer, .solution-answer-nested { border: 1px solid #ccc !important; } }`;
     return `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>Druckansicht: ${data.assignmentTitle}</title><style>${css}</style></head><body>${bodyContent}</body></html>`;
 }
 

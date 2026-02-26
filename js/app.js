@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('submit-all').addEventListener('click', submitAllAssignments);
-    document.getElementById('print-answers').addEventListener('click', () => printAssignmentAnswers(assignmentId));
+    document.getElementById('print-answers').addEventListener('click', () => printAssignmentAnswers(assignmentId, urlParams.get('variant')));
 
     // ✅ UPDATED: Add the org parameter to the fetch URL
     // Use CONTENT_ORG to read the shared assignment definitions
