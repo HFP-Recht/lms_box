@@ -222,11 +222,38 @@ export function renderSubAssignment(assignmentData, assignmentId, subId) {
         document.getElementById('content-renderer').innerHTML = `<p>Unbekannter Aufgabentyp: ${subAssignmentData.type}</p>`;
     }
 
+    const createRevealableElement = (content) => {
+        const container = document.createElement('div');
+        container.className = 'solution-reveal-container';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'solution-content';
+        contentDiv.innerHTML = content;
+
+        const coverDiv = document.createElement('div');
+        coverDiv.className = 'solution-cover';
+        coverDiv.textContent = 'Klicken zum Aufdecken';
+
+        container.appendChild(contentDiv);
+        container.appendChild(coverDiv);
+
+        container.addEventListener('click', () => {
+            container.classList.add('revealed');
+        });
+
+        return container;
+    };
+
     // ✅ FIX: Solution unlock logic is now placed here to run for ALL assignment types.
     const displaySolution = () => {
         const solutionData = subAssignmentData.solution;
         const solutionMap = new Map(solutionData.solutions.map(s => [s.id, s.answer]));
-        let html = `<h3>Musterlösung${solutionData.page ? ` (Seite ${solutionData.page})` : ''}</h3>`;
+        const displayContainer = document.getElementById('solution-display-container');
+        displayContainer.innerHTML = ''; // Clear previous content
+
+        const title = document.createElement('h3');
+        title.textContent = `Musterlösung${solutionData.page ? ` (Seite ${solutionData.page})` : ''}`;
+        displayContainer.appendChild(title);
 
         if (subAssignmentData.type === 'law_case') {
             const steps = [
@@ -235,23 +262,42 @@ export function renderSubAssignment(assignmentData, assignmentId, subId) {
             ];
             steps.forEach(step => {
                 const answer = solutionMap.get(step.id) || 'Für diesen Schritt wurde keine Lösung gefunden.';
-                html += `<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-                            <p style="font-weight: bold;">${step.title}:</p>
-                            <div style="padding: 10px; background-color: #e9f3ff; border-radius: 4px;">${answer}</div>
-                         </div>`;
+                const stepDiv = document.createElement('div');
+                stepDiv.style.marginTop = '20px';
+                stepDiv.style.paddingTop = '15px';
+                stepDiv.style.borderTop = '1px solid #eee';
+
+                const stepLabel = document.createElement('p');
+                stepLabel.style.fontWeight = 'bold';
+                stepLabel.textContent = `${step.title}:`;
+                stepDiv.appendChild(stepLabel);
+
+                stepDiv.appendChild(createRevealableElement(answer));
+                displayContainer.appendChild(stepDiv);
             });
         } else { // Default 'quill' type
             subAssignmentData.questions.forEach((question, index) => {
                 const answer = solutionMap.get(question.id) || 'Für diese Frage wurde keine Lösung gefunden.';
-                html += `<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
-                            <p style="font-weight: bold;">Frage ${index + 1}:</p>
-                            <p style="font-style: italic;">${parseMarkdown(question.text)}</p>
-                            <div style="padding: 10px; background-color: #e9f3ff; border-radius: 4px;">${answer}</div>
-                         </div>`;
+                const questionDiv = document.createElement('div');
+                questionDiv.style.marginTop = '20px';
+                questionDiv.style.paddingTop = '15px';
+                questionDiv.style.borderTop = '1px solid #eee';
+
+                const questionLabel = document.createElement('p');
+                questionLabel.style.fontWeight = 'bold';
+                questionLabel.textContent = `Frage ${index + 1}:`;
+                questionDiv.appendChild(questionLabel);
+
+                const questionText = document.createElement('p');
+                questionText.style.fontStyle = 'italic';
+                questionText.innerHTML = parseMarkdown(question.text);
+                questionDiv.appendChild(questionText);
+
+                questionDiv.appendChild(createRevealableElement(answer));
+                displayContainer.appendChild(questionDiv);
             });
         }
 
-        solutionDisplayContainer.innerHTML = html;
         solutionDisplayContainer.style.display = 'block';
         solutionUnlockContainer.style.display = 'none';
     };
