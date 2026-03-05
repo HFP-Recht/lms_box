@@ -23,6 +23,42 @@ function parseMarkdown(text) {
 }
 
 /**
+ * ✅ NEW: Simple HTML to Plain Text converter for backwards compatibility.
+ */
+function htmlToPlainText(html) {
+    if (!html) return '';
+    if (!html.includes('<')) return html; // Already plain text
+
+    let text = html;
+    // Replace common block elements with newlines
+    text = text.replace(/<p>/gi, '');
+    text = text.replace(/<\/p>/gi, '\n');
+    text = text.replace(/<br\s*\/?>/gi, '\n');
+    text = text.replace(/<li>/gi, '• ');
+    text = text.replace(/<\/li>/gi, '\n');
+    text = text.replace(/<ul>/gi, '');
+    text = text.replace(/<\/ul>/gi, '\n');
+    text = text.replace(/<ol>/gi, '');
+    text = text.replace(/<\/ol>/gi, '\n');
+
+    // Strip remaining tags
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+    text = tempDiv.textContent || tempDiv.innerText || '';
+
+    // Clean up multiple newlines
+    return text.replace(/\n\s*\n/g, '\n\n').trim();
+}
+
+/**
+ * ✅ NEW: Auto-resizes textarea based on content.
+ */
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+/**
  * ✅ NEW: Renders the law case study layout with 4 Quill editors and hints.
  */
 function renderLawCase(data, assignmentId, subId) {
@@ -39,27 +75,24 @@ function renderLawCase(data, assignmentId, subId) {
         { id: 'step_4', title: '4. Regel auf Sachverhalt anwenden und Rechtsfolge bestimmen', description: 'Sind die Voraussetzungen im Einzelfall erfüllt?' }
     ];
 
-    const quillInstances = [];
+    const textareas = [];
     lawStepsContainer.innerHTML = '';
 
     steps.forEach((step) => {
-        const editorId = `quill-editor-${step.id}`;
+        const textareaId = `textarea-${step.id}`;
 
         const stepDiv = document.createElement('div');
         stepDiv.className = 'law-step';
         stepDiv.innerHTML = `
             <h3>${step.title}</h3>
             <p>${step.description}</p>
-            <div id="${editorId}" class="quill-editor-small"></div>
+            <textarea id="${textareaId}" class="plain-text-editor" placeholder="Ihre Antwort hier eingeben..."></textarea>
             <div class="hint-container" id="hint-container-${step.id}"></div>
         `;
         lawStepsContainer.appendChild(stepDiv);
 
-        const quill = new Quill(`#${editorId}`, {
-            theme: 'snow',
-            modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'ordered' }, { 'list': 'bullet' }]] }
-        });
-        quillInstances.push({ id: step.id, instance: quill });
+        const textarea = document.getElementById(textareaId);
+        textareas.push({ id: step.id, element: textarea });
 
         // ✅ NEW: Hint logic
         const hintData = (data.hints || []).find(h => h.id === step.id);
@@ -86,13 +119,11 @@ function renderLawCase(data, assignmentId, subId) {
         }
     });
 
-
-
     const saveAllAnswers = debounce(() => {
         const allAnswers = {};
-        quillInstances.forEach(item => {
-            const content = item.instance.root.innerHTML;
-            if (content && content !== '<p><br></p>') {
+        textareas.forEach(item => {
+            const content = item.element.value.trim();
+            if (content) {
                 allAnswers[item.id] = content;
             }
         });
@@ -109,23 +140,28 @@ function renderLawCase(data, assignmentId, subId) {
     if (savedAnswersRaw) {
         try {
             const savedAnswers = JSON.parse(savedAnswersRaw);
-            quillInstances.forEach(item => {
+            textareas.forEach(item => {
                 if (savedAnswers[item.id]) {
-                    item.instance.root.innerHTML = savedAnswers[item.id];
+                    // Backwards Compatibility: Convert HTML to Plain Text if necessary
+                    item.element.value = htmlToPlainText(savedAnswers[item.id]);
+                    autoResize(item.element); // Resize loaded content
                 }
             });
         } catch (e) { console.error("Could not parse saved law case answers:", e); }
     }
 
-    quillInstances.forEach(item => {
-        item.instance.on('text-change', saveAllAnswers);
+    textareas.forEach(item => {
+        item.element.addEventListener('input', () => {
+            saveAllAnswers();
+            autoResize(item.element);
+        });
     });
 
     localStorage.setItem(`${TITLE_PREFIX}${assignmentId}_sub_${subId}_caseText`, data.caseText);
 }
 
 /**
- * Renders a standard Quill editor.
+ * Renders a standard Plain Text editor (Textarea).
  */
 function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
@@ -140,23 +176,27 @@ function renderQuill(data, assignmentId, subId) {
     });
     contentRenderer.appendChild(questionsList);
 
-    const editorDiv = document.createElement('div');
-    editorDiv.id = 'quill-editor';
-    contentRenderer.appendChild(editorDiv);
-    const quill = new Quill('#quill-editor', { theme: 'snow' });
+    const textarea = document.createElement('textarea');
+    textarea.id = 'plain-text-editor';
+    textarea.className = 'plain-text-editor';
+    textarea.placeholder = "Schildern Sie hier Ihre Lösung...";
+    contentRenderer.appendChild(textarea);
 
-    quill.root.innerHTML = localStorage.getItem(storageKey) || '';
+    const savedContent = localStorage.getItem(storageKey) || '';
+    textarea.value = htmlToPlainText(savedContent);
+    autoResize(textarea); // Resize loaded content
 
-    quill.on('text-change', debounce(() => {
-        const htmlContent = quill.root.innerHTML;
-        if (htmlContent && htmlContent !== '<p><br></p>') {
-            localStorage.setItem(storageKey, htmlContent);
+    textarea.addEventListener('input', () => {
+        const content = textarea.value.trim();
+        if (content) {
+            localStorage.setItem(storageKey, content);
         } else {
             localStorage.removeItem(storageKey);
         }
+        autoResize(textarea);
         // ✅ NEW: Dispatch event for auto-save
         window.dispatchEvent(new CustomEvent('assignment-updated'));
-    }, 500));
+    });
 }
 
 /**
